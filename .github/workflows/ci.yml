@@ -1,43 +1,63 @@
-name: CI
+﻿name: CI
+
 on:
-pull_request:
-branches: [main]
-push:
-branches: [main]
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
-api:
-runs-on: ubuntu-latest
-defaults:
-run:
-working-directory: api
-steps:
-- uses: actions/checkout@v4
-- uses: actions/setup-node@v4
-with:
-node-version: 22
-cache: npm
-cache-dependency-path: api/package-lock.json
-- run: npm ci
-- run: npm run lint
-- run: npm test
+  api:
+    runs-on: ubuntu-latest
 
-web:
-runs-on: ubuntu-latest
-defaults:
-run:
-working-directory: web
-steps:
-# checkout y setup-node igual que en api,
-# con cache-dependency-path: web/package-lock.json
-- run: npm ci
-- run: npm run lint
-- run: npm test
-- run: npm run build
+    defaults:
+      run:
+        working-directory: api
 
-docker:
-needs: [api, web]
-runs-on: ubuntu-latest
-steps:
-- uses: actions/checkout@v4
-- run: cp .env.example .env
-- run: docker compose build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  web:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:3000' }}
+
+  docker:
+    needs: [api, web]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose build
